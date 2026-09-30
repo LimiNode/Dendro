@@ -33,4 +33,5 @@
 
 # CMake build trees
 build/
+build-*/
 cmake-build-*/

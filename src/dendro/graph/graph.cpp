@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <utility>
+#include <algorithm>
 
 namespace dendro::graph {
 
@@ -15,11 +16,20 @@ NodeId Graph::add_node(Node node) {
 void Graph::add_edge(Edge edge) {
     (void)node(edge.from);
     (void)node(edge.to);
+    const auto duplicate = std::find_if(edges_.begin(), edges_.end(), [&edge](const Edge& existing) {
+        return existing.from == edge.from && existing.to == edge.to && existing.kind == edge.kind;
+    });
+    if (duplicate != edges_.end()) {
+        return;
+    }
     edges_.push_back(edge);
 }
 
 void Graph::add_root(NodeId id) {
     (void)node(id);
+    if (std::find(roots_.begin(), roots_.end(), id) != roots_.end()) {
+        return;
+    }
     roots_.push_back(id);
 }
 

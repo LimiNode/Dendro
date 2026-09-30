@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -22,7 +21,6 @@ struct Node {
     NodeId id = 0;
     NodeKind kind = NodeKind::File;
     std::string name;
-    std::filesystem::path path;
 };
 
 struct Edge {

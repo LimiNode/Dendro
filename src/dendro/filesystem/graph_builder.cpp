@@ -122,7 +122,6 @@ private:
         if (node.name.empty()) {
             node.name = normalized.generic_string();
         }
-        node.path = normalized;
         const graph::NodeId id = graph_.add_node(std::move(node));
         ids_.emplace(normalized, id);
 
@@ -143,7 +142,6 @@ private:
         graph::Node node;
         node.kind = graph::NodeKind::File;
         node.name = normalized.filename().generic_string();
-        node.path = normalized;
         const graph::NodeId id = graph_.add_node(std::move(node));
         ids_.emplace(normalized, id);
         return id;
