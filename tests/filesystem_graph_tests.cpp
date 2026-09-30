@@ -8,6 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -25,8 +26,12 @@ int main() {
     const fs::path root = fs::temp_directory_path() / "dendro-filesystem-graph-tests";
     fs::remove_all(root);
     fs::create_directories(root / "src" / "nested");
+    fs::create_directories(root / "src" / "foo");
+    fs::create_directories(root / "tests" / "foo");
     std::ofstream(root / "src" / "nested" / "main.cpp") << "int main() {}\n";
     std::ofstream(root / "src" / "nested" / "main.hpp") << "#pragma once\n";
+    std::ofstream(root / "src" / "foo" / "config.hpp") << "#pragma once\n";
+    std::ofstream(root / "tests" / "foo" / "config.hpp") << "#pragma once\n";
     std::ofstream(root / "src" / "a.cpp") << "void a() {}\n";
     std::ofstream(root / "src" / "z.cpp") << "void z() {}\n";
     std::ofstream(root / "README.md") << "readme\n";
@@ -38,15 +43,17 @@ int main() {
 
     const dendro::graph::Graph graph = dendro::filesystem::build_filesystem_graph(root, config);
     CHECK(graph.roots().size() == 1);
-    CHECK(graph.nodes().size() == 5);
-    CHECK(graph.edges().size() == 4);
+    CHECK(graph.nodes().size() == 6);
+    CHECK(graph.edges().size() == 5);
 
     const auto root_id = graph.roots().front();
     const auto root_children = graph.outgoing(root_id, dendro::graph::EdgeKind::Contains);
-    CHECK(root_children.size() == 3);
-    CHECK(graph.node(root_children[0]).name == "nested");
-    CHECK(graph.node(root_children[1]).name == "a.cpp");
-    CHECK(graph.node(root_children[2]).name == "z.cpp");
+    CHECK(root_children.size() == 4);
+    CHECK(graph.node(root_children[0]).name == "foo");
+    CHECK(graph.node(root_children[1]).name == "nested");
+    CHECK(graph.node(root_children[2]).name == "a.cpp");
+    CHECK(graph.node(root_children[3]).name == "z.cpp");
+    CHECK(graph.node(root_id).identity == "filesystem:src");
 
     const std::string tree = dendro::filesystem::format_tree(graph, true);
     CHECK(tree.find("src/") != std::string::npos);
@@ -65,14 +72,31 @@ int main() {
     const std::string facade_tree = dendro::generate_structure(config);
     CHECK(facade_tree.find("a.cpp") != std::string::npos);
 
+    dendro::DendroConfig identity_config;
+    identity_config.allowed_extensions = {"hpp"};
+    const dendro::graph::Graph identity_graph =
+        dendro::filesystem::build_filesystem_graph(root, identity_config);
+    std::vector<std::string> config_identities;
+    for (const auto& node : identity_graph.nodes()) {
+        if (node.name == "config.hpp") {
+            config_identities.push_back(node.identity);
+        }
+    }
+    CHECK(config_identities.size() == 2);
+    CHECK(config_identities[0] == "filesystem:src/foo/config.hpp");
+    CHECK(config_identities[1] == "filesystem:tests/foo/config.hpp");
+    CHECK(config_identities[0] != config_identities[1]);
+
     dendro::graph::Graph graph_api;
-    const auto node_id = graph_api.add_node({0, dendro::graph::NodeKind::File, "one"});
+    const auto node_id =
+        graph_api.add_node({0, dendro::graph::NodeKind::File, "one", "manual:one"});
     graph_api.add_root(node_id);
     graph_api.add_root(node_id);
     graph_api.add_edge({node_id, node_id, dendro::graph::EdgeKind::Contains});
     graph_api.add_edge({node_id, node_id, dendro::graph::EdgeKind::Contains});
     CHECK(graph_api.roots().size() == 1);
     CHECK(graph_api.edges().size() == 1);
+    CHECK(graph_api.node(node_id).identity == "manual:one");
 
     bool invalid_id_threw = false;
     try {

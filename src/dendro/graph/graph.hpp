@@ -20,7 +20,10 @@ enum class EdgeKind {
 struct Node {
     NodeId id = 0;
     NodeKind kind = NodeKind::File;
+    /// Human-readable label for presentation.
     std::string name;
+    /// Provider-defined stable identity within the indexed snapshot.
+    std::string identity;
 };
 
 struct Edge {

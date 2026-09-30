@@ -96,7 +96,8 @@ std::vector<Entry> children(const fs::path& directory, const DendroConfig& confi
 
 class Builder {
 public:
-    Builder(const DendroConfig& config, graph::Graph& graph) : config_(config), graph_(graph) {}
+    Builder(const DendroConfig& config, graph::Graph& graph, fs::path snapshot_root)
+        : config_(config), graph_(graph), snapshot_root_(std::move(snapshot_root)) {}
 
     void add_root(const fs::path& path) {
         const fs::path normalized = canonical_path(path);
@@ -109,6 +110,23 @@ public:
     }
 
 private:
+    std::string identity_for(const fs::path& path) const {
+        const fs::path relative = path.lexically_relative(snapshot_root_);
+        if (relative == ".") {
+            return "filesystem:.";
+        }
+
+        bool outside_snapshot = relative.empty();
+        for (const fs::path& component : relative) {
+            if (component == "..") {
+                outside_snapshot = true;
+                break;
+            }
+        }
+        const fs::path identity_path = outside_snapshot ? path : relative;
+        return "filesystem:" + identity_path.generic_string();
+    }
+
     graph::NodeId add_directory(const fs::path& path) {
         const fs::path normalized = canonical_path(path);
         const auto existing = ids_.find(normalized);
@@ -122,6 +140,7 @@ private:
         if (node.name.empty()) {
             node.name = normalized.generic_string();
         }
+        node.identity = identity_for(normalized);
         const graph::NodeId id = graph_.add_node(std::move(node));
         ids_.emplace(normalized, id);
 
@@ -142,6 +161,7 @@ private:
         graph::Node node;
         node.kind = graph::NodeKind::File;
         node.name = normalized.filename().generic_string();
+        node.identity = identity_for(normalized);
         const graph::NodeId id = graph_.add_node(std::move(node));
         ids_.emplace(normalized, id);
         return id;
@@ -149,6 +169,7 @@ private:
 
     const DendroConfig& config_;
     graph::Graph& graph_;
+    fs::path snapshot_root_;
     std::map<fs::path, graph::NodeId> ids_;
 };
 
@@ -157,8 +178,8 @@ private:
 graph::Graph build_filesystem_graph(const std::filesystem::path& root,
                                     const DendroConfig& config) {
     graph::Graph graph;
-    Builder builder(config, graph);
     const fs::path base = canonical_path(root);
+    Builder builder(config, graph, base);
 
     if (config.include_dirs.empty()) {
         builder.add_root(base);
