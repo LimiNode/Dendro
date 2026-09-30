@@ -48,3 +48,12 @@ the filesystem provider uses `filesystem:` plus a path relative to the indexed
 snapshot. An explicitly included root outside the snapshot uses the
 `filesystem-absolute:` fallback. Future indexers and query domains will extend
 this model without changing the tree projection.
+
+The initial query API is available through `dendro::query`:
+
+```cpp
+dendro::query::nodes(graph, dendro::graph::NodeKind::File);
+dendro::query::children(graph, directory_id);
+dendro::query::parents(graph, file_id);
+graph.find_by_identity("filesystem:src/main.cpp");
+```

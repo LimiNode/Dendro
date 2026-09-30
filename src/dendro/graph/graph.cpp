@@ -62,6 +62,15 @@ const std::vector<NodeId>& Graph::roots() const noexcept {
     return roots_;
 }
 
+std::optional<NodeId> Graph::find_by_identity(std::string_view identity) const {
+    for (const Node& candidate : nodes_) {
+        if (candidate.identity == identity) {
+            return candidate.id;
+        }
+    }
+    return std::nullopt;
+}
+
 std::vector<NodeId> Graph::outgoing(NodeId id, EdgeKind kind) const {
     (void)node(id);
     std::vector<NodeId> result;

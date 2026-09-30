@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace dendro::graph {
@@ -42,6 +44,7 @@ public:
     const std::vector<Node>& nodes() const noexcept;
     const std::vector<Edge>& edges() const noexcept;
     const std::vector<NodeId>& roots() const noexcept;
+    std::optional<NodeId> find_by_identity(std::string_view identity) const;
     std::vector<NodeId> outgoing(NodeId id, EdgeKind kind) const;
     std::vector<NodeId> incoming(NodeId id, EdgeKind kind) const;
 
