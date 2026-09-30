@@ -45,5 +45,6 @@ filesystem provider → dendro::graph::Graph → tree formatter
 The graph currently contains only `Directory`, `File`, and `Contains`. Each
 node also has a provider-defined `identity`, separate from its display name;
 the filesystem provider uses `filesystem:` plus a path relative to the indexed
-snapshot. Future indexers and query domains will extend this model without
-changing the tree projection.
+snapshot. An explicitly included root outside the snapshot uses the
+`filesystem-absolute:` fallback. Future indexers and query domains will extend
+this model without changing the tree projection.

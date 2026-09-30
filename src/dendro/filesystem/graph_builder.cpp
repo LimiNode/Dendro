@@ -123,8 +123,10 @@ private:
                 break;
             }
         }
-        const fs::path identity_path = outside_snapshot ? path : relative;
-        return "filesystem:" + identity_path.generic_string();
+        if (outside_snapshot) {
+            return "filesystem-absolute:" + path.generic_string();
+        }
+        return "filesystem:" + relative.generic_string();
     }
 
     graph::NodeId add_directory(const fs::path& path) {

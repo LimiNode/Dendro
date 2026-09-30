@@ -87,6 +87,19 @@ int main() {
     CHECK(config_identities[1] == "filesystem:tests/foo/config.hpp");
     CHECK(config_identities[0] != config_identities[1]);
 
+    const fs::path external_root = fs::temp_directory_path() / "dendro-external-identity-tests";
+    fs::remove_all(external_root);
+    fs::create_directories(external_root);
+    std::ofstream(external_root / "external.cpp") << "void external() {}\n";
+    dendro::DendroConfig external_config;
+    external_config.include_dirs = {external_root};
+    external_config.allowed_extensions = {"cpp"};
+    const dendro::graph::Graph external_graph =
+        dendro::filesystem::build_filesystem_graph(root, external_config);
+    CHECK(external_graph.roots().size() == 1);
+    CHECK(external_graph.node(external_graph.roots().front()).identity.rfind(
+              "filesystem-absolute:", 0) == 0);
+
     dendro::graph::Graph graph_api;
     const auto node_id =
         graph_api.add_node({0, dendro::graph::NodeKind::File, "one", "manual:one"});
@@ -98,6 +111,22 @@ int main() {
     CHECK(graph_api.edges().size() == 1);
     CHECK(graph_api.node(node_id).identity == "manual:one");
 
+    bool empty_identity_threw = false;
+    try {
+        graph_api.add_node({0, dendro::graph::NodeKind::File, "empty", ""});
+    } catch (const std::invalid_argument&) {
+        empty_identity_threw = true;
+    }
+    CHECK(empty_identity_threw);
+
+    bool duplicate_identity_threw = false;
+    try {
+        graph_api.add_node({0, dendro::graph::NodeKind::File, "duplicate", "manual:one"});
+    } catch (const std::invalid_argument&) {
+        duplicate_identity_threw = true;
+    }
+    CHECK(duplicate_identity_threw);
+
     bool invalid_id_threw = false;
     try {
         (void)graph_api.node(999);
@@ -107,5 +136,6 @@ int main() {
     CHECK(invalid_id_threw);
 
     fs::remove_all(root);
+    fs::remove_all(external_root);
     return failures == 0 ? 0 : 1;
 }

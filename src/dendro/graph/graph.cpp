@@ -7,6 +7,16 @@
 namespace dendro::graph {
 
 NodeId Graph::add_node(Node node) {
+    if (node.identity.empty()) {
+        throw std::invalid_argument("graph node identity must not be empty");
+    }
+    const auto duplicate = std::find_if(nodes_.begin(), nodes_.end(), [&node](const Node& existing) {
+        return existing.identity == node.identity;
+    });
+    if (duplicate != nodes_.end()) {
+        throw std::invalid_argument("graph node identity must be unique: " + node.identity);
+    }
+
     const NodeId id = static_cast<NodeId>(nodes_.size() + 1);
     node.id = id;
     nodes_.push_back(std::move(node));
