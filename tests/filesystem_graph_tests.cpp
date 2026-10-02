@@ -1,11 +1,13 @@
 #include <dendro.hpp>
 #include <dendro/filesystem/graph_builder.hpp>
+#include <dendro/filesystem/filesystem_provider.hpp>
 #include <dendro/filesystem/tree.hpp>
 #include <dendro/graph/graph.hpp>
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -71,6 +73,38 @@ int main() {
     config.root_path = root;
     const std::string facade_tree = dendro::generate_structure(config);
     CHECK(facade_tree.find("a.cpp") != std::string::npos);
+
+    std::unique_ptr<dendro::provider::IGraphProvider> filesystem_provider =
+        std::make_unique<dendro::filesystem::FilesystemProvider>(config);
+    const dendro::provider::Project project{root};
+    dendro::graph::Graph provider_graph;
+    filesystem_provider->populate(project, provider_graph);
+    CHECK(provider_graph.roots().size() == 1);
+    CHECK(provider_graph.node(provider_graph.roots().front()).identity == "filesystem:src");
+    const auto provider_node_count = provider_graph.nodes().size();
+    const auto provider_edge_count = provider_graph.edges().size();
+    filesystem_provider->populate(project, provider_graph);
+    CHECK(provider_graph.nodes().size() == provider_node_count);
+    CHECK(provider_graph.edges().size() == provider_edge_count);
+
+    dendro::graph::Graph collision_graph;
+    collision_graph.add_node(
+        {0, dendro::graph::NodeKind::File, "src", "filesystem:src"});
+    bool kind_collision_threw = false;
+    try {
+        filesystem_provider->populate(project, collision_graph);
+    } catch (const std::invalid_argument&) {
+        kind_collision_threw = true;
+    }
+    CHECK(kind_collision_threw);
+
+    bool empty_project_root_threw = false;
+    try {
+        filesystem_provider->populate({}, provider_graph);
+    } catch (const std::invalid_argument&) {
+        empty_project_root_threw = true;
+    }
+    CHECK(empty_project_root_threw);
 
     dendro::DendroConfig identity_config;
     identity_config.allowed_extensions = {"hpp"};

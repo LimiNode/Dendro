@@ -4,6 +4,7 @@
 #include <cctype>
 #include <filesystem>
 #include <map>
+#include <stdexcept>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -129,6 +130,25 @@ private:
         return "filesystem:" + relative.generic_string();
     }
 
+    graph::NodeId ensure_node(const fs::path& normalized,
+                              graph::NodeKind kind,
+                              std::string name) {
+        const std::string identity = identity_for(normalized);
+        const auto existing = graph_.find_by_identity(identity);
+        if (existing.has_value()) {
+            if (graph_.node(*existing).kind != kind) {
+                throw std::invalid_argument("filesystem identity kind collision: " + identity);
+            }
+            return *existing;
+        }
+
+        graph::Node node;
+        node.kind = kind;
+        node.name = std::move(name);
+        node.identity = identity;
+        return graph_.add_node(std::move(node));
+    }
+
     graph::NodeId add_directory(const fs::path& path) {
         const fs::path normalized = canonical_path(path);
         const auto existing = ids_.find(normalized);
@@ -136,14 +156,11 @@ private:
             return existing->second;
         }
 
-        graph::Node node;
-        node.kind = graph::NodeKind::Directory;
-        node.name = normalized.filename().generic_string();
-        if (node.name.empty()) {
-            node.name = normalized.generic_string();
+        std::string name = normalized.filename().generic_string();
+        if (name.empty()) {
+            name = normalized.generic_string();
         }
-        node.identity = identity_for(normalized);
-        const graph::NodeId id = graph_.add_node(std::move(node));
+        const graph::NodeId id = ensure_node(normalized, graph::NodeKind::Directory, std::move(name));
         ids_.emplace(normalized, id);
 
         for (const Entry& entry : children(normalized, config_)) {
@@ -160,11 +177,8 @@ private:
             return existing->second;
         }
 
-        graph::Node node;
-        node.kind = graph::NodeKind::File;
-        node.name = normalized.filename().generic_string();
-        node.identity = identity_for(normalized);
-        const graph::NodeId id = graph_.add_node(std::move(node));
+        const graph::NodeId id = ensure_node(
+            normalized, graph::NodeKind::File, normalized.filename().generic_string());
         ids_.emplace(normalized, id);
         return id;
     }
@@ -180,6 +194,13 @@ private:
 graph::Graph build_filesystem_graph(const std::filesystem::path& root,
                                     const DendroConfig& config) {
     graph::Graph graph;
+    populate_filesystem_graph(root, config, graph);
+    return graph;
+}
+
+void populate_filesystem_graph(const std::filesystem::path& root,
+                               const DendroConfig& config,
+                               graph::Graph& graph) {
     const fs::path base = canonical_path(root);
     Builder builder(config, graph, base);
 
@@ -190,7 +211,6 @@ graph::Graph build_filesystem_graph(const std::filesystem::path& root,
             builder.add_root(include.is_absolute() ? include : base / include);
         }
     }
-    return graph;
 }
 
 } // namespace dendro::filesystem

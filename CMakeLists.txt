@@ -37,6 +37,7 @@ target_compile_features(dendro_query PUBLIC cxx_std_17)
 
 add_library(dendro_filesystem STATIC
     src/dendro/filesystem/graph_builder.cpp
+    src/dendro/filesystem/filesystem_provider.cpp
     src/dendro/filesystem/tree.cpp
 )
 add_library(dendro::filesystem ALIAS dendro_filesystem)
