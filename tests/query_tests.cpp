@@ -1,6 +1,7 @@
 #include <dendro/query/query.hpp>
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 #define CHECK(expression)                                                       \
@@ -46,6 +47,22 @@ int main() {
     const auto main_parents = dendro::query::parents(graph, main_file);
     CHECK(main_parents.size() == 1);
     CHECK(main_parents.front() == src);
+
+    bool invalid_children_threw = false;
+    try {
+        (void)dendro::query::children(graph, 999);
+    } catch (const std::out_of_range&) {
+        invalid_children_threw = true;
+    }
+    CHECK(invalid_children_threw);
+
+    bool invalid_parents_threw = false;
+    try {
+        (void)dendro::query::parents(graph, 999);
+    } catch (const std::out_of_range&) {
+        invalid_parents_threw = true;
+    }
+    CHECK(invalid_parents_threw);
 
     return failures == 0 ? 0 : 1;
 }
