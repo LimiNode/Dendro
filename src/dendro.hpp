@@ -4,6 +4,7 @@
 #include <dendro/graph/graph.hpp>
 #include <dendro/filesystem/graph_builder.hpp>
 #include <dendro/filesystem/tree.hpp>
+#include <dendro/query/query.hpp>
 
 namespace dendro {
 
