@@ -1,4 +1,5 @@
 #include <dendro.hpp>
+#include <dendro/cpp/compilation_provider.hpp>
 #include <dendro/filesystem/graph_builder.hpp>
 #include <dendro/filesystem/filesystem_provider.hpp>
 #include <dendro/filesystem/tree.hpp>
@@ -105,6 +106,31 @@ int main() {
         empty_project_root_threw = true;
     }
     CHECK(empty_project_root_threw);
+
+    const fs::path compilation_database_path = root / "compile_commands.json";
+    {
+        std::ofstream compilation_database(compilation_database_path);
+        compilation_database << "[{\"directory\":\"" << root.generic_string()
+                             << "\",\"file\":\"src/a.cpp\",\"command\":\"g++ -c src/a.cpp\"}]";
+    }
+    dendro::cpp::CompilationProvider compilation_provider({compilation_database_path});
+    const auto before_compilation_nodes = provider_graph.nodes().size();
+    compilation_provider.populate(project, provider_graph);
+    CHECK(provider_graph.nodes().size() == before_compilation_nodes + 1);
+    const auto translation_unit =
+        provider_graph.find_by_identity("cpp:translation-unit:filesystem:src/a.cpp");
+    CHECK(translation_unit.has_value());
+    CHECK(provider_graph.node(*translation_unit).kind ==
+          dendro::graph::NodeKind::TranslationUnit);
+    CHECK(provider_graph.node(*translation_unit).source.has_value());
+    CHECK(provider_graph.node(*translation_unit).source->file_identity ==
+          "filesystem:src/a.cpp");
+    const auto compiled_files =
+        provider_graph.outgoing(*translation_unit, dendro::graph::EdgeKind::Compiles);
+    CHECK(compiled_files.size() == 1);
+    CHECK(provider_graph.node(compiled_files.front()).identity == "filesystem:src/a.cpp");
+    compilation_provider.populate(project, provider_graph);
+    CHECK(provider_graph.nodes().size() == before_compilation_nodes + 1);
 
     dendro::DendroConfig identity_config;
     identity_config.allowed_extensions = {"hpp"};

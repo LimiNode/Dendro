@@ -57,3 +57,7 @@ dendro::query::children(graph, directory_id);
 dendro::query::parents(graph, file_id);
 graph.find_by_identity("filesystem:src/main.cpp");
 ```
+
+The C++ preparation layer can read a `compile_commands.json` database and add
+translation-unit nodes linked to existing filesystem files. Semantic symbol
+extraction remains a separate Clang-based provider milestone.

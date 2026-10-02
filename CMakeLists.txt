@@ -51,6 +51,21 @@ target_include_directories(dendro_filesystem
 target_link_libraries(dendro_filesystem PUBLIC dendro::graph)
 target_compile_features(dendro_filesystem PUBLIC cxx_std_17)
 
+add_library(dendro_cpp STATIC
+    src/dendro/cpp/compilation_database.cpp
+    src/dendro/cpp/compilation_provider.cpp
+)
+add_library(dendro::cpp ALIAS dendro_cpp)
+
+target_include_directories(dendro_cpp
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(dendro_cpp PUBLIC dendro::filesystem)
+target_compile_features(dendro_cpp PUBLIC cxx_std_17)
+
 add_executable(dendro
     src/main.cpp
     src/dendro/cli/arguments.cpp
@@ -65,7 +80,7 @@ endif()
 if(DENDRO_BUILD_TESTS)
     enable_testing()
     add_executable(dendro_filesystem_graph_tests tests/filesystem_graph_tests.cpp)
-    target_link_libraries(dendro_filesystem_graph_tests PRIVATE dendro::filesystem)
+    target_link_libraries(dendro_filesystem_graph_tests PRIVATE dendro::cpp)
     target_compile_features(dendro_filesystem_graph_tests PRIVATE cxx_std_17)
     add_test(NAME dendro.filesystem_graph COMMAND dendro_filesystem_graph_tests)
 

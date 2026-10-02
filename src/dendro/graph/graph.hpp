@@ -13,10 +13,29 @@ using NodeId = std::uint64_t;
 enum class NodeKind {
     Directory,
     File,
+    TranslationUnit,
+    Namespace,
+    Type,
+    Function,
+    Variable,
 };
 
 enum class EdgeKind {
     Contains,
+    Compiles,
+    Includes,
+    Declares,
+    Defines,
+    References,
+    Calls,
+};
+
+struct SourceLocation {
+    std::string file_identity;
+    std::uint32_t begin_line = 0;
+    std::uint32_t begin_column = 0;
+    std::uint32_t end_line = 0;
+    std::uint32_t end_column = 0;
 };
 
 struct Node {
@@ -26,6 +45,7 @@ struct Node {
     std::string name;
     /// Provider-defined stable identity within the indexed snapshot.
     std::string identity;
+    std::optional<SourceLocation> source;
 };
 
 struct Edge {

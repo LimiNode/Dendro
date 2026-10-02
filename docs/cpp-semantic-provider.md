@@ -24,8 +24,11 @@ public:
 ```
 
 `FilesystemProvider` is the first implementation and serves as the reference
-adapter. A future `ClangProvider` will add namespaces, types, functions,
-definitions, references, and calls using the same graph and query layers.
+adapter. The current C++ preparatory slice reads `compile_commands.json`, adds
+`TranslationUnit` nodes, and links them to existing filesystem files with
+`Compiles` edges. A future `ClangProvider` will add namespaces, types,
+functions, definitions, references, and calls using the same graph and query
+layers.
 
 Tree-sitter may be added later as a syntax-only fallback, but it is not the
 primary C++ semantic source: it does not provide Clang-equivalent

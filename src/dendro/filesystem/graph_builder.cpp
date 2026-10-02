@@ -65,6 +65,28 @@ struct Entry {
     bool directory = false;
 };
 
+std::string identity_for_path_impl(const std::filesystem::path& path,
+                                   const std::filesystem::path& snapshot_root) {
+    const fs::path normalized = canonical_path(path);
+    const fs::path normalized_root = canonical_path(snapshot_root);
+    const fs::path relative = normalized.lexically_relative(normalized_root);
+    if (relative == ".") {
+        return "filesystem:.";
+    }
+
+    bool outside_snapshot = relative.empty();
+    for (const fs::path& component : relative) {
+        if (component == "..") {
+            outside_snapshot = true;
+            break;
+        }
+    }
+    if (outside_snapshot) {
+        return "filesystem-absolute:" + normalized.generic_string();
+    }
+    return "filesystem:" + relative.generic_string();
+}
+
 std::vector<Entry> children(const fs::path& directory, const DendroConfig& config) {
     std::vector<Entry> result;
     std::error_code ec;
@@ -111,29 +133,10 @@ public:
     }
 
 private:
-    std::string identity_for(const fs::path& path) const {
-        const fs::path relative = path.lexically_relative(snapshot_root_);
-        if (relative == ".") {
-            return "filesystem:.";
-        }
-
-        bool outside_snapshot = relative.empty();
-        for (const fs::path& component : relative) {
-            if (component == "..") {
-                outside_snapshot = true;
-                break;
-            }
-        }
-        if (outside_snapshot) {
-            return "filesystem-absolute:" + path.generic_string();
-        }
-        return "filesystem:" + relative.generic_string();
-    }
-
     graph::NodeId ensure_node(const fs::path& normalized,
                               graph::NodeKind kind,
                               std::string name) {
-        const std::string identity = identity_for(normalized);
+        const std::string identity = identity_for_path_impl(normalized, snapshot_root_);
         const auto existing = graph_.find_by_identity(identity);
         if (existing.has_value()) {
             if (graph_.node(*existing).kind != kind) {
@@ -190,6 +193,11 @@ private:
 };
 
 } // namespace
+
+std::string identity_for_path(const std::filesystem::path& path,
+                              const std::filesystem::path& snapshot_root) {
+    return identity_for_path_impl(path, snapshot_root);
+}
 
 graph::Graph build_filesystem_graph(const std::filesystem::path& root,
                                     const DendroConfig& config) {
