@@ -1,5 +1,6 @@
 #include <dendro.hpp>
 #include <dendro/filesystem/graph_builder.hpp>
+#include <dendro/filesystem/filesystem_provider.hpp>
 #include <dendro/filesystem/tree.hpp>
 #include <dendro/graph/graph.hpp>
 
@@ -71,6 +72,12 @@ int main() {
     config.root_path = root;
     const std::string facade_tree = dendro::generate_structure(config);
     CHECK(facade_tree.find("a.cpp") != std::string::npos);
+
+    dendro::filesystem::FilesystemProvider filesystem_provider(config);
+    const dendro::provider::Project project{root, {}};
+    const dendro::graph::Graph provider_graph = filesystem_provider.build(project);
+    CHECK(provider_graph.roots().size() == 1);
+    CHECK(provider_graph.node(provider_graph.roots().front()).identity == "filesystem:src");
 
     dendro::DendroConfig identity_config;
     identity_config.allowed_extensions = {"hpp"};
