@@ -87,6 +87,17 @@ int main() {
     CHECK(provider_graph.nodes().size() == provider_node_count);
     CHECK(provider_graph.edges().size() == provider_edge_count);
 
+    dendro::graph::Graph collision_graph;
+    collision_graph.add_node(
+        {0, dendro::graph::NodeKind::File, "src", "filesystem:src"});
+    bool kind_collision_threw = false;
+    try {
+        filesystem_provider->populate(project, collision_graph);
+    } catch (const std::invalid_argument&) {
+        kind_collision_threw = true;
+    }
+    CHECK(kind_collision_threw);
+
     bool empty_project_root_threw = false;
     try {
         filesystem_provider->populate({}, provider_graph);

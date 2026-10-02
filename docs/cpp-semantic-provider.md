@@ -42,6 +42,11 @@ Providers are composable and populate one shared graph. Their contract is:
 5. Provider failures are fail-fast for the current operation.
 6. Provider execution order is explicit.
 
+A `graph::Graph` represents one project snapshot. Every provider contributing
+to a graph must receive the same `Project.root`; mixing multiple project roots
+in one graph is unsupported. Provider population is currently non-transactional:
+a failing provider may leave partial additions in the graph.
+
 The filesystem provider is therefore able to create `filesystem:src/foo.cpp`
 first, while a future Clang provider can reuse that file node and add
 `cpp:function:...` nodes and semantic edges to the same graph.
