@@ -12,13 +12,12 @@ namespace dendro::provider {
 
 struct Project {
     std::filesystem::path root;
-    std::filesystem::path compile_commands;
 };
 
 class IGraphProvider {
 public:
     virtual ~IGraphProvider() = default;
-    virtual graph::Graph build(const Project& project) const = 0;
+    virtual void populate(const Project& project, graph::Graph& graph) const = 0;
 };
 
 }
@@ -29,9 +28,28 @@ adapter. A future `ClangProvider` will add namespaces, types, functions,
 definitions, references, and calls using the same graph and query layers.
 
 Tree-sitter may be added later as a syntax-only fallback, but it is not the
-primary C++ semantic source: it cannot reliably resolve overloads, templates,
-macros, or cross-translation-unit references. Regex-based parsing is not a
+primary C++ semantic source: it does not provide Clang-equivalent
+preprocessing, name lookup, overload/template resolution, or
+cross-translation-unit semantic resolution. Regex-based parsing is not a
 provider option.
+
+Providers are composable and populate one shared graph. Their contract is:
+
+1. A provider owns identities in its own namespace.
+2. A provider may reference nodes created by another provider.
+3. Existing node identities are reused, not duplicated.
+4. A provider never silently replaces an existing node.
+5. Provider failures are fail-fast for the current operation.
+6. Provider execution order is explicit.
+
+The filesystem provider is therefore able to create `filesystem:src/foo.cpp`
+first, while a future Clang provider can reuse that file node and add
+`cpp:function:...` nodes and semantic edges to the same graph.
+
+`Project.root` is required for provider operations. Providers reject an empty
+root with `std::invalid_argument`; interpreting an empty path as the current
+working directory remains a convenience of the legacy filesystem helper, not
+of the provider boundary.
 
 The initial Clang milestone is intentionally limited to:
 

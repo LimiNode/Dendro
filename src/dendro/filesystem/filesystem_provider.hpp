@@ -9,7 +9,7 @@ class FilesystemProvider final : public provider::IGraphProvider {
 public:
     explicit FilesystemProvider(DendroConfig config = {});
 
-    graph::Graph build(const provider::Project& project) const override;
+    void populate(const provider::Project& project, graph::Graph& graph) const override;
 
 private:
     DendroConfig config_;

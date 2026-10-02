@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -73,11 +74,26 @@ int main() {
     const std::string facade_tree = dendro::generate_structure(config);
     CHECK(facade_tree.find("a.cpp") != std::string::npos);
 
-    dendro::filesystem::FilesystemProvider filesystem_provider(config);
-    const dendro::provider::Project project{root, {}};
-    const dendro::graph::Graph provider_graph = filesystem_provider.build(project);
+    std::unique_ptr<dendro::provider::IGraphProvider> filesystem_provider =
+        std::make_unique<dendro::filesystem::FilesystemProvider>(config);
+    const dendro::provider::Project project{root};
+    dendro::graph::Graph provider_graph;
+    filesystem_provider->populate(project, provider_graph);
     CHECK(provider_graph.roots().size() == 1);
     CHECK(provider_graph.node(provider_graph.roots().front()).identity == "filesystem:src");
+    const auto provider_node_count = provider_graph.nodes().size();
+    const auto provider_edge_count = provider_graph.edges().size();
+    filesystem_provider->populate(project, provider_graph);
+    CHECK(provider_graph.nodes().size() == provider_node_count);
+    CHECK(provider_graph.edges().size() == provider_edge_count);
+
+    bool empty_project_root_threw = false;
+    try {
+        filesystem_provider->populate({}, provider_graph);
+    } catch (const std::invalid_argument&) {
+        empty_project_root_threw = true;
+    }
+    CHECK(empty_project_root_threw);
 
     dendro::DendroConfig identity_config;
     identity_config.allowed_extensions = {"hpp"};
