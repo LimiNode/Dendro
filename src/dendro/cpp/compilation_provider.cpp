@@ -10,6 +10,22 @@
 #include <utility>
 
 namespace dendro::cpp {
+
+namespace detail {
+
+std::string fnv1a_64(std::string_view value) {
+    std::uint64_t digest = 14695981039346656037ULL;
+    for (const unsigned char byte : value) {
+        digest ^= byte;
+        digest *= 1099511628211ULL;
+    }
+    std::ostringstream result;
+    result << std::hex << std::setw(16) << std::setfill('0') << digest;
+    return result.str();
+}
+
+} // namespace detail
+
 namespace {
 
 namespace fs = std::filesystem;
@@ -47,14 +63,7 @@ std::string action_identity(const CompilationCommand& command,
 
     // FNV-1a is deterministic across processes and platforms; this is an
     // identity discriminator, not a security hash.
-    std::uint64_t digest = 1469598103934665603ULL;
-    for (const unsigned char byte : serialized) {
-        digest ^= byte;
-        digest *= 1099511628211ULL;
-    }
-    std::ostringstream result;
-    result << std::hex << std::setw(16) << std::setfill('0') << digest;
-    return result.str();
+    return detail::fnv1a_64(serialized);
 }
 
 } // namespace
@@ -75,9 +84,10 @@ void CompilationProvider::populate(const provider::Project& project, graph::Grap
     const fs::path database_root = database_path.parent_path();
     const fs::path project_root = canonical_path(project.root);
     for (const CompilationCommand& command : database.commands()) {
-        const fs::path directory = command.directory.is_absolute()
+        const fs::path raw_directory = command.directory.is_absolute()
             ? command.directory
             : database_root / command.directory;
+        const fs::path directory = canonical_path(raw_directory);
         const fs::path source = canonical_path(command.file.is_absolute() ? command.file
                                                                         : directory / command.file);
         const std::string file_identity = filesystem::identity_for_path(source, project_root);

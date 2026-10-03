@@ -71,6 +71,19 @@ private:
         }
     }
 
+    unsigned parse_hex_quad() {
+        unsigned codepoint = 0;
+        for (int index = 0; index < 4; ++index) {
+            const char digit = take();
+            codepoint <<= 4;
+            if (digit >= '0' && digit <= '9') codepoint += digit - '0';
+            else if (digit >= 'a' && digit <= 'f') codepoint += digit - 'a' + 10;
+            else if (digit >= 'A' && digit <= 'F') codepoint += digit - 'A' + 10;
+            else throw std::invalid_argument("invalid JSON unicode escape");
+        }
+        return codepoint;
+    }
+
     std::string parse_string() {
         expect('"');
         std::string result;
@@ -97,16 +110,24 @@ private:
             case 'r': result.push_back('\r'); break;
             case 't': result.push_back('\t'); break;
             case 'u': {
-                unsigned codepoint = 0;
-                for (int index = 0; index < 4; ++index) {
-                    const char digit = take();
-                    codepoint <<= 4;
-                    if (digit >= '0' && digit <= '9') codepoint += digit - '0';
-                    else if (digit >= 'a' && digit <= 'f') codepoint += digit - 'a' + 10;
-                    else if (digit >= 'A' && digit <= 'F') codepoint += digit - 'A' + 10;
-                    else throw std::invalid_argument("invalid JSON unicode escape");
+                const unsigned high = parse_hex_quad();
+                if (high >= 0xd800 && high <= 0xdbff) {
+                    if (position_ + 1 >= text_.size() || text_[position_] != '\\' ||
+                        text_[position_ + 1] != 'u') {
+                        throw std::invalid_argument("unpaired JSON high surrogate");
+                    }
+                    position_ += 2;
+                    const unsigned low = parse_hex_quad();
+                    if (low < 0xdc00 || low > 0xdfff) {
+                        throw std::invalid_argument("invalid JSON surrogate pair");
+                    }
+                    append_utf8(result, 0x10000 + ((high - 0xd800) << 10) +
+                                          (low - 0xdc00));
+                } else if (high >= 0xdc00 && high <= 0xdfff) {
+                    throw std::invalid_argument("unpaired JSON low surrogate");
+                } else {
+                    append_utf8(result, high);
                 }
-                append_utf8(result, codepoint);
                 break;
             }
             default:
