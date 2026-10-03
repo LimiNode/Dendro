@@ -76,3 +76,6 @@ The initial Clang milestone is intentionally limited to:
 - basic references and calls where Clang resolves the target.
 
 CFG/DFG, persistence, slicing, and MCP remain outside this provider milestone.
+
+The detailed symbol-provider boundary is documented in
+[`clang-symbol-provider.md`](clang-symbol-provider.md).
