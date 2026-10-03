@@ -38,6 +38,16 @@ struct SourceLocation {
     std::uint32_t end_column = 0;
 };
 
+enum class SourceOccurrenceKind {
+    Declaration,
+    Definition,
+};
+
+struct SourceOccurrence {
+    SourceLocation location;
+    SourceOccurrenceKind kind = SourceOccurrenceKind::Declaration;
+};
+
 struct Node {
     NodeId id = 0;
     NodeKind kind = NodeKind::File;
@@ -46,6 +56,8 @@ struct Node {
     /// Provider-defined stable identity within the indexed snapshot.
     std::string identity;
     std::optional<SourceLocation> source;
+    /// All known declaration/definition occurrences for semantic nodes.
+    std::vector<SourceOccurrence> occurrences;
 };
 
 struct Edge {

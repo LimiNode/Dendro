@@ -1,19 +1,10 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
-#include <string_view>
-
+#include <dendro/cpp/compilation_identity.hpp>
 #include <dendro/provider/graph_provider.hpp>
 
 namespace dendro::cpp {
-
-namespace detail {
-
-/// Deterministic FNV-1a 64-bit digest used for provider identities.
-std::string fnv1a_64(std::string_view value);
-
-} // namespace detail
 
 struct CompilationProviderConfig {
     std::filesystem::path compilation_database;

@@ -202,6 +202,22 @@ int main() {
     CHECK(graph_api.edges().size() == 1);
     CHECK(graph_api.node(node_id).identity == "manual:one");
 
+    dendro::graph::Node symbol_node;
+    symbol_node.kind = dendro::graph::NodeKind::Function;
+    symbol_node.name = "foo";
+    symbol_node.identity = "cpp:usr:c:@F@foo";
+    symbol_node.occurrences.push_back(
+        {{"filesystem:src/a.cpp", 1, 1, 1, 12},
+         dendro::graph::SourceOccurrenceKind::Declaration});
+    symbol_node.occurrences.push_back(
+        {{"filesystem:src/a.cpp", 3, 1, 3, 12},
+         dendro::graph::SourceOccurrenceKind::Definition});
+    CHECK(symbol_node.occurrences.size() == 2);
+    CHECK(symbol_node.occurrences[0].kind ==
+          dendro::graph::SourceOccurrenceKind::Declaration);
+    CHECK(symbol_node.occurrences[1].kind ==
+          dendro::graph::SourceOccurrenceKind::Definition);
+
     bool empty_identity_threw = false;
     try {
         graph_api.add_node({0, dendro::graph::NodeKind::File, "empty", ""});

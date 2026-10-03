@@ -22,6 +22,13 @@ arguments of each compile action. It must not reconstruct a shell command from
 fallback; production Clang integration belongs behind an optional Clang/LLVM
 build dependency.
 
+The provider reloads the compilation database and resolves each existing
+translation unit with the shared `detail::translation_unit_identity()` helper.
+That helper receives the canonical working directory, the filesystem identity,
+and the complete command/arguments/output tuple. This is the explicit binding
+between a graph node and the exact compile action; no provider is allowed to
+reimplement the digest algorithm.
+
 ## Identity and provenance
 
 For declarations where Clang provides a USR, the provider identity is:
@@ -37,10 +44,10 @@ translation units can share names while representing different entities.
 Source location is provenance, not identity. A source occurrence records the
 filesystem file identity and concrete begin/end coordinates. A symbol may have
 multiple occurrences (for example a declaration and a definition), so the
-implementation must not silently overwrite an earlier occurrence merely
-because the graph `Node` currently has one primary `SourceLocation` field. The
-occurrence representation and its edge semantics will be finalized before AST
-materialization is enabled.
+implementation must not silently overwrite an earlier occurrence. Graph nodes
+now retain a primary `SourceLocation` for compatibility plus an
+`occurrences` collection of `{location, kind}` records, where `kind` is
+`Declaration` or `Definition`.
 
 ## Initial graph vocabulary
 
@@ -50,9 +57,17 @@ The first implementation uses the existing kinds without further splitting:
 Namespace  Type  Function  Variable
 ```
 
-It adds only declaration/definition relationships in this slice. `References`,
-`Calls`, control-flow, data-flow, persistence, and MCP remain separate
-milestones.
+For this slice the edge semantics are explicit:
+
+```text
+TranslationUnit --Declares--> Symbol   (declaration occurrence)
+TranslationUnit --Defines--> Symbol    (definition occurrence)
+```
+
+The symbol node is identified by USR and stores all known occurrences. A
+`File` is the provenance referenced by each occurrence's `file_identity`; it
+is not the source/target of `Declares` or `Defines`. `References`, `Calls`,
+control-flow, data-flow, persistence, and MCP remain separate milestones.
 
 The provider must validate that every referenced `TranslationUnit` belongs to
 the same project snapshot and must reuse existing filesystem nodes by identity.

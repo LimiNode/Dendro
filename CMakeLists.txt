@@ -53,6 +53,7 @@ target_compile_features(dendro_filesystem PUBLIC cxx_std_17)
 
 add_library(dendro_cpp STATIC
     src/dendro/cpp/compilation_database.cpp
+    src/dendro/cpp/compilation_identity.cpp
     src/dendro/cpp/compilation_provider.cpp
 )
 add_library(dendro::cpp ALIAS dendro_cpp)
