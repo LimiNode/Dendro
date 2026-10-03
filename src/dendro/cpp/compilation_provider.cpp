@@ -3,7 +3,9 @@
 #include <dendro/cpp/compilation_database.hpp>
 #include <dendro/filesystem/graph_builder.hpp>
 
-#include <set>
+#include <cstdint>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -17,6 +19,42 @@ fs::path canonical_path(const fs::path& path) {
     const fs::path absolute = fs::absolute(path, error);
     const fs::path canonical = fs::weakly_canonical(absolute, error);
     return error ? absolute : canonical;
+}
+
+std::string action_identity(const CompilationCommand& command,
+                           const fs::path& directory,
+                           const std::string& file_identity) {
+    std::string serialized = directory.generic_string();
+    serialized.push_back('\0');
+    serialized += file_identity;
+    serialized.push_back('\0');
+    if (command.arguments.has_value()) {
+        serialized += "arguments\0";
+        for (const std::string& argument : *command.arguments) {
+            serialized += argument;
+            serialized.push_back('\0');
+        }
+    }
+    if (command.command.has_value()) {
+        serialized += "command\0";
+        serialized += *command.command;
+        serialized.push_back('\0');
+    }
+    if (command.output.has_value()) {
+        serialized += "output\0";
+        serialized += *command.output;
+    }
+
+    // FNV-1a is deterministic across processes and platforms; this is an
+    // identity discriminator, not a security hash.
+    std::uint64_t digest = 1469598103934665603ULL;
+    for (const unsigned char byte : serialized) {
+        digest ^= byte;
+        digest *= 1099511628211ULL;
+    }
+    std::ostringstream result;
+    result << std::hex << std::setw(16) << std::setfill('0') << digest;
+    return result.str();
 }
 
 } // namespace
@@ -36,8 +74,6 @@ void CompilationProvider::populate(const provider::Project& project, graph::Grap
     const CompilationDatabase database = CompilationDatabase::load(database_path);
     const fs::path database_root = database_path.parent_path();
     const fs::path project_root = canonical_path(project.root);
-    std::set<std::string> seen_files;
-
     for (const CompilationCommand& command : database.commands()) {
         const fs::path directory = command.directory.is_absolute()
             ? command.directory
@@ -45,10 +81,6 @@ void CompilationProvider::populate(const provider::Project& project, graph::Grap
         const fs::path source = canonical_path(command.file.is_absolute() ? command.file
                                                                         : directory / command.file);
         const std::string file_identity = filesystem::identity_for_path(source, project_root);
-        if (!seen_files.insert(file_identity).second) {
-            continue;
-        }
-
         const auto file_id = graph.find_by_identity(file_identity);
         if (!file_id.has_value()) {
             throw std::invalid_argument("compilation unit file is missing from graph: " +
@@ -60,7 +92,8 @@ void CompilationProvider::populate(const provider::Project& project, graph::Grap
         }
 
         const std::string translation_unit_identity =
-            "cpp:translation-unit:" + file_identity;
+            "cpp:translation-unit:" + file_identity + ":" +
+            action_identity(command, directory, file_identity);
         auto translation_unit_id = graph.find_by_identity(translation_unit_identity);
         if (!translation_unit_id.has_value()) {
             graph::Node node;

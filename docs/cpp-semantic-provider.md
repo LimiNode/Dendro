@@ -30,6 +30,14 @@ adapter. The current C++ preparatory slice reads `compile_commands.json`, adds
 functions, definitions, references, and calls using the same graph and query
 layers.
 
+The preparation slice accepts the standard compilation-database fields
+`directory`, `file`, and either `command` or `arguments` (both may be present),
+and rejects entries that provide neither command form. Its small self-contained
+JSON reader is intentionally limited to this preparation boundary; the future
+Clang-backed provider should use Clang's compilation-database implementation
+when it becomes the production semantic adapter. Multiple compile actions for
+one source file are preserved as distinct translation units.
+
 Tree-sitter may be added later as a syntax-only fallback, but it is not the
 primary C++ semantic source: it does not provide Clang-equivalent
 preprocessing, name lookup, overload/template resolution, or

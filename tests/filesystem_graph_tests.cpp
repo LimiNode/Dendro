@@ -1,4 +1,5 @@
 #include <dendro.hpp>
+#include <dendro/cpp/compilation_database.hpp>
 #include <dendro/cpp/compilation_provider.hpp>
 #include <dendro/filesystem/graph_builder.hpp>
 #include <dendro/filesystem/filesystem_provider.hpp>
@@ -111,26 +112,49 @@ int main() {
     {
         std::ofstream compilation_database(compilation_database_path);
         compilation_database << "[{\"directory\":\"" << root.generic_string()
-                             << "\",\"file\":\"src/a.cpp\",\"command\":\"g++ -c src/a.cpp\"}]";
+                             << "\",\"file\":\"src/a.cpp\",\"command\":\"g++ -DMODE_A -c src/a.cpp\"},"
+                             << "{\"directory\":\"" << root.generic_string()
+                             << "\",\"file\":\"src/a.cpp\",\"arguments\":[\"g++\",\"-DMODE_B\",\"-c\",\"src/a.cpp\"]}]";
     }
+    const auto parsed_database = dendro::cpp::CompilationDatabase::load(compilation_database_path);
+    CHECK(parsed_database.commands().size() == 2);
+    CHECK(parsed_database.commands()[1].arguments.has_value());
+    CHECK(parsed_database.commands()[1].arguments->size() == 4);
+
+    const fs::path invalid_database_path = root / "invalid-compile_commands.json";
+    std::ofstream(invalid_database_path)
+        << "[{\"directory\":\"" << root.generic_string()
+        << "\",\"file\":\"src/a.cpp\"}]";
+    bool missing_command_threw = false;
+    try {
+        (void)dendro::cpp::CompilationDatabase::load(invalid_database_path);
+    } catch (const std::invalid_argument&) {
+        missing_command_threw = true;
+    }
+    CHECK(missing_command_threw);
+
     dendro::cpp::CompilationProvider compilation_provider({compilation_database_path});
     const auto before_compilation_nodes = provider_graph.nodes().size();
     compilation_provider.populate(project, provider_graph);
-    CHECK(provider_graph.nodes().size() == before_compilation_nodes + 1);
-    const auto translation_unit =
-        provider_graph.find_by_identity("cpp:translation-unit:filesystem:src/a.cpp");
-    CHECK(translation_unit.has_value());
-    CHECK(provider_graph.node(*translation_unit).kind ==
-          dendro::graph::NodeKind::TranslationUnit);
-    CHECK(provider_graph.node(*translation_unit).source.has_value());
-    CHECK(provider_graph.node(*translation_unit).source->file_identity ==
-          "filesystem:src/a.cpp");
-    const auto compiled_files =
-        provider_graph.outgoing(*translation_unit, dendro::graph::EdgeKind::Compiles);
-    CHECK(compiled_files.size() == 1);
-    CHECK(provider_graph.node(compiled_files.front()).identity == "filesystem:src/a.cpp");
+    CHECK(provider_graph.nodes().size() == before_compilation_nodes + 2);
+    std::size_t translation_unit_count = 0;
+    std::vector<std::string> translation_unit_identities;
+    for (const auto& node : provider_graph.nodes()) {
+        if (node.kind != dendro::graph::NodeKind::TranslationUnit) continue;
+        ++translation_unit_count;
+        translation_unit_identities.push_back(node.identity);
+        CHECK(node.source.has_value());
+        CHECK(node.source->file_identity == "filesystem:src/a.cpp");
+        const auto compiled_files =
+            provider_graph.outgoing(node.id, dendro::graph::EdgeKind::Compiles);
+        CHECK(compiled_files.size() == 1);
+        CHECK(provider_graph.node(compiled_files.front()).identity == "filesystem:src/a.cpp");
+    }
+    CHECK(translation_unit_count == 2);
+    CHECK(translation_unit_identities.size() == 2);
+    CHECK(translation_unit_identities[0] != translation_unit_identities[1]);
     compilation_provider.populate(project, provider_graph);
-    CHECK(provider_graph.nodes().size() == before_compilation_nodes + 1);
+    CHECK(provider_graph.nodes().size() == before_compilation_nodes + 2);
 
     dendro::DendroConfig identity_config;
     identity_config.allowed_extensions = {"hpp"};

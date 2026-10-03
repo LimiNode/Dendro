@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -9,7 +10,9 @@ namespace dendro::cpp {
 struct CompilationCommand {
     std::filesystem::path directory;
     std::filesystem::path file;
-    std::string command;
+    std::optional<std::string> command;
+    std::optional<std::vector<std::string>> arguments;
+    std::optional<std::string> output;
 };
 
 class CompilationDatabase {
