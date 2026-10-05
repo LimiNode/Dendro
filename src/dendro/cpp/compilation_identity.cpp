@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace dendro::cpp::detail {
+namespace dendro::cpp::compilation {
 
 std::string fnv1a_64(std::string_view value) {
     std::uint64_t digest = 14695981039346656037ULL;
@@ -46,4 +46,4 @@ std::string translation_unit_identity(const CompilationCommand& command,
     return "cpp:translation-unit:" + std::string(file_identity) + ":" + fnv1a_64(serialized);
 }
 
-} // namespace dendro::cpp::detail
+} // namespace dendro::cpp::compilation

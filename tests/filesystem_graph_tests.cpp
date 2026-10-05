@@ -159,7 +159,7 @@ int main() {
     CHECK(translation_unit_identities[0] != translation_unit_identities[1]);
     CHECK(translation_unit_identities[1] != translation_unit_identities[2]);
     CHECK(translation_unit_identities[0].size() >= 16);
-    CHECK(dendro::cpp::detail::fnv1a_64("hello") == "a430d84680aabd0b");
+    CHECK(dendro::cpp::compilation::fnv1a_64("hello") == "a430d84680aabd0b");
     compilation_provider.populate(project, provider_graph);
     CHECK(provider_graph.nodes().size() == before_compilation_nodes + 3);
 
@@ -202,21 +202,33 @@ int main() {
     CHECK(graph_api.edges().size() == 1);
     CHECK(graph_api.node(node_id).identity == "manual:one");
 
-    dendro::graph::Node symbol_node;
-    symbol_node.kind = dendro::graph::NodeKind::Function;
-    symbol_node.name = "foo";
-    symbol_node.identity = "cpp:usr:c:@F@foo";
-    symbol_node.occurrences.push_back(
-        {{"filesystem:src/a.cpp", 1, 1, 1, 12},
-         dendro::graph::SourceOccurrenceKind::Declaration});
-    symbol_node.occurrences.push_back(
-        {{"filesystem:src/a.cpp", 3, 1, 3, 12},
-         dendro::graph::SourceOccurrenceKind::Definition});
-    CHECK(symbol_node.occurrences.size() == 2);
-    CHECK(symbol_node.occurrences[0].kind ==
+    const auto symbol_id = graph_api.add_node(
+        {0, dendro::graph::NodeKind::Function, "foo", "cpp:usr:c:@F@foo"});
+    const dendro::graph::SourceOccurrence declaration{
+        {"filesystem:src/a.cpp", 1, 1, 1, 12},
+        dendro::graph::SourceOccurrenceKind::Declaration};
+    const dendro::graph::SourceOccurrence definition{
+        {"filesystem:src/a.cpp", 3, 1, 3, 12},
+        dendro::graph::SourceOccurrenceKind::Definition};
+    graph_api.add_occurrence(symbol_id, declaration);
+    graph_api.add_occurrence(symbol_id, declaration);
+    graph_api.add_occurrence(symbol_id, definition);
+    graph_api.add_occurrence(symbol_id, definition);
+    CHECK(graph_api.node(symbol_id).occurrences.size() == 2);
+    CHECK(graph_api.node(symbol_id).occurrences[0].kind ==
           dendro::graph::SourceOccurrenceKind::Declaration);
-    CHECK(symbol_node.occurrences[1].kind ==
+    CHECK(graph_api.node(symbol_id).occurrences[1].kind ==
           dendro::graph::SourceOccurrenceKind::Definition);
+    CHECK(graph_api.node(symbol_id).source.has_value());
+    CHECK(graph_api.node(symbol_id).source->begin_line == 1);
+
+    bool invalid_occurrence_id_threw = false;
+    try {
+        graph_api.add_occurrence(999, declaration);
+    } catch (const std::out_of_range&) {
+        invalid_occurrence_id_threw = true;
+    }
+    CHECK(invalid_occurrence_id_threw);
 
     bool empty_identity_threw = false;
     try {

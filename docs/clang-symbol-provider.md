@@ -23,7 +23,8 @@ fallback; production Clang integration belongs behind an optional Clang/LLVM
 build dependency.
 
 The provider reloads the compilation database and resolves each existing
-translation unit with the shared `detail::translation_unit_identity()` helper.
+translation unit with the shared
+`compilation::translation_unit_identity()` helper.
 That helper receives the canonical working directory, the filesystem identity,
 and the complete command/arguments/output tuple. This is the explicit binding
 between a graph node and the exact compile action; no provider is allowed to
@@ -48,6 +49,12 @@ implementation must not silently overwrite an earlier occurrence. Graph nodes
 now retain a primary `SourceLocation` for compatibility plus an
 `occurrences` collection of `{location, kind}` records, where `kind` is
 `Declaration` or `Definition`.
+The first inserted occurrence becomes the primary `SourceLocation`; the full
+`occurrences` collection is authoritative for semantic nodes.
+
+Occurrence identity is the tuple `(kind, file_identity, begin_line,
+begin_column, end_line, end_column)`. `Graph::add_occurrence()` uses this tuple
+to suppress exact duplicates, making repeated provider population idempotent.
 
 ## Initial graph vocabulary
 

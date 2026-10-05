@@ -69,6 +69,9 @@ struct Edge {
 class Graph {
 public:
     NodeId add_node(Node node);
+    /// Adds an occurrence to a node, ignoring an exact duplicate.
+    /// The first occurrence also initializes the compatibility source field.
+    void add_occurrence(NodeId id, SourceOccurrence occurrence);
     void add_edge(Edge edge);
     void add_root(NodeId id);
 
@@ -81,6 +84,7 @@ public:
     std::vector<NodeId> incoming(NodeId id, EdgeKind kind) const;
 
 private:
+    Node& mutable_node(NodeId id);
     std::vector<Node> nodes_;
     std::vector<Edge> edges_;
     std::vector<NodeId> roots_;

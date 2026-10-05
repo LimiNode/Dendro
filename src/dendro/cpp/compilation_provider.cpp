@@ -54,7 +54,7 @@ void CompilationProvider::populate(const provider::Project& project, graph::Grap
         }
 
         const std::string translation_unit_identity =
-            detail::translation_unit_identity(command, directory, file_identity);
+            compilation::translation_unit_identity(command, directory, file_identity);
         auto translation_unit_id = graph.find_by_identity(translation_unit_identity);
         if (!translation_unit_id.has_value()) {
             graph::Node node;

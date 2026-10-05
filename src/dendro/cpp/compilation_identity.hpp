@@ -8,7 +8,7 @@
 
 namespace dendro::cpp {
 
-namespace detail {
+namespace compilation {
 
 /// Deterministic FNV-1a 64-bit digest used for provider identities.
 std::string fnv1a_64(std::string_view value);
@@ -18,6 +18,6 @@ std::string translation_unit_identity(const CompilationCommand& command,
                                       const std::filesystem::path& normalized_directory,
                                       std::string_view file_identity);
 
-} // namespace detail
+} // namespace compilation
 
 } // namespace dendro::cpp

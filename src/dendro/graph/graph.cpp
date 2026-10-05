@@ -23,6 +23,29 @@ NodeId Graph::add_node(Node node) {
     return id;
 }
 
+void Graph::add_occurrence(NodeId id, SourceOccurrence occurrence) {
+    Node& target = mutable_node(id);
+    const auto duplicate = std::find_if(
+        target.occurrences.begin(), target.occurrences.end(),
+        [&occurrence](const SourceOccurrence& existing) {
+            const SourceLocation& left = existing.location;
+            const SourceLocation& right = occurrence.location;
+            return existing.kind == occurrence.kind &&
+                   left.file_identity == right.file_identity &&
+                   left.begin_line == right.begin_line &&
+                   left.begin_column == right.begin_column &&
+                   left.end_line == right.end_line &&
+                   left.end_column == right.end_column;
+        });
+    if (duplicate != target.occurrences.end()) {
+        return;
+    }
+    if (!target.source.has_value()) {
+        target.source = occurrence.location;
+    }
+    target.occurrences.push_back(std::move(occurrence));
+}
+
 void Graph::add_edge(Edge edge) {
     (void)node(edge.from);
     (void)node(edge.to);
@@ -44,6 +67,13 @@ void Graph::add_root(NodeId id) {
 }
 
 const Node& Graph::node(NodeId id) const {
+    if (id == 0 || id > nodes_.size()) {
+        throw std::out_of_range("graph node id is out of range");
+    }
+    return nodes_[static_cast<std::size_t>(id - 1)];
+}
+
+Node& Graph::mutable_node(NodeId id) {
     if (id == 0 || id > nodes_.size()) {
         throw std::out_of_range("graph node id is out of range");
     }
