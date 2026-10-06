@@ -70,7 +70,8 @@ class Graph {
 public:
     NodeId add_node(Node node);
     /// Adds an occurrence to a node, ignoring an exact duplicate.
-    /// The first occurrence also initializes the compatibility source field.
+    /// The first occurrence initializes the compatibility source field when it
+    /// has not been set already.
     void add_occurrence(NodeId id, SourceOccurrence occurrence);
     void add_edge(Edge edge);
     void add_root(NodeId id);

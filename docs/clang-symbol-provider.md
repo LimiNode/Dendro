@@ -49,8 +49,9 @@ implementation must not silently overwrite an earlier occurrence. Graph nodes
 now retain a primary `SourceLocation` for compatibility plus an
 `occurrences` collection of `{location, kind}` records, where `kind` is
 `Declaration` or `Definition`.
-The first inserted occurrence becomes the primary `SourceLocation`; the full
-`occurrences` collection is authoritative for semantic nodes.
+The first inserted occurrence initializes the primary `SourceLocation` when it
+has not been set already; the full `occurrences` collection is authoritative
+for semantic nodes.
 
 Occurrence identity is the tuple `(kind, file_identity, begin_line,
 begin_column, end_line, end_column)`. `Graph::add_occurrence()` uses this tuple
