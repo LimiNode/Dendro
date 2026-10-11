@@ -61,3 +61,12 @@ graph.find_by_identity("filesystem:src/main.cpp");
 The C++ preparation layer can read a `compile_commands.json` database and add
 translation-unit nodes linked to existing filesystem files. Semantic symbol
 extraction remains a separate Clang-based provider milestone.
+
+## C++/Clang toolchain policy
+
+When the Clang semantic provider is enabled, Dendro and LLVM/Clang Tooling must
+be built with one ABI-compatible toolchain. Do not mix the official MSVC-built
+LLVM libraries with a MinGW/libstdc++ Dendro build. On Windows, the supported
+development setup is a single MSYS2 UCRT64 environment containing the
+`mingw-w64-ucrt-x86_64` compiler, Clang, LLVM, and CMake packages. Configure,
+build, and test the project from that same environment.

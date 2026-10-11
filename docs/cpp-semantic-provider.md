@@ -79,3 +79,11 @@ CFG/DFG, persistence, slicing, and MCP remain outside this provider milestone.
 
 The detailed symbol-provider boundary is documented in
 [`clang-symbol-provider.md`](clang-symbol-provider.md).
+
+## Toolchain compatibility
+
+Clang Tooling is a C++ library dependency, not merely an executable. Dendro and
+LLVM/Clang must therefore use the same ABI-compatible compiler/runtime. The
+project does not support mixing MSVC-built LLVM libraries with a MinGW/
+libstdc++ Dendro build. On Windows, use one MSYS2 UCRT64 environment for the
+compiler, LLVM/Clang packages, CMake configuration, build, and tests.
