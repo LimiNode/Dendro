@@ -1,6 +1,6 @@
 [submodule "libs/Consolix"]
 	path = libs/Consolix
-	url = https://github.com/NewYaroslav/Consolix.git
+	url = https://github.com/LimiNode/Consolix.git
 [submodule "libs/cxxopts"]
 	path = libs/cxxopts
 	url = https://github.com/jarro2783/cxxopts.git
